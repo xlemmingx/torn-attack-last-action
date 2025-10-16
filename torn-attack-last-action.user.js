@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Attack Last Action
 // @namespace    http://tampermonkey.net/
-// @version      1.2.0
+// @version      1.2.1
 // @description  Show targets last action on attack page
 // @author       xlemmingx [2035104]
 // @match        https://www.torn.com/loader.php*
@@ -29,16 +29,16 @@
         const secondsAgo = now - timestamp;
 
         if (secondsAgo < 60) {
-            return `${secondsAgo} Sekunden`;
+            return `${secondsAgo} seconds`;
         } else if (secondsAgo < 3600) {
             const minutes = Math.floor(secondsAgo / 60);
-            return `${minutes} Minute${minutes !== 1 ? 'n' : ''}`;
+            return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
         } else if (secondsAgo < 86400) {
             const hours = Math.floor(secondsAgo / 3600);
-            return `${hours} Stunde${hours !== 1 ? 'n' : ''}`;
+            return `${hours} hour${hours !== 1 ? 's' : ''}`;
         } else {
             const days = Math.floor(secondsAgo / 86400);
-            return `${days} Tag${days !== 1 ? 'e' : ''}`;
+            return `${days} day${days !== 1 ? 's' : ''}`;
         }
     }
 
@@ -96,10 +96,10 @@
 
     function showApiKeyPrompt() {
         const apiKey = prompt(
-            'Bitte geben Sie Ihren Torn API Key ein:\n\n' +
-            '1. Gehen Sie zu https://www.torn.com/preferences.php#tab=api\n' +
-            '2. Erstellen Sie einen neuen API Key mit "Public" Access\n' +
-            '3. Fügen Sie den Key hier ein:'
+            'Please enter your Torn API Key:\n\n' +
+            '1. Go to https://www.torn.com/preferences.php#tab=api\n' +
+            '2. Create a new API Key with "Public" Access\n' +
+            '3. Enter the key here:'
         );
 
         if (apiKey) {
