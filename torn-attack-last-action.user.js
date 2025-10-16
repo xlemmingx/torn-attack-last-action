@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Attack Last Action
 // @namespace    http://tampermonkey.net/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Show targets last action on attack page
 // @author       xlemmingx [2035104]
 // @match        https://www.torn.com/loader.php*
@@ -78,33 +78,20 @@
     function createLastActionDisplay(timeAgo) {
         const display = document.createElement('div');
         display.style.cssText = `
-            margin-top: 10px;
-            color: #666;
-            font-size: 13px;
-            font-style: italic;
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            z-index: 10000;
+            border: 1px solid #444;
         `;
         display.innerHTML = `Last action: ${timeAgo} ago`;
         return display;
-    }
-
-    function findInsertionPoint() {
-        // Look for "Back to profile" link or similar navigation elements
-        const backToProfile = document.querySelector('a[href*="profiles.php"]');
-        if (backToProfile && backToProfile.textContent.includes('Back')) {
-            return backToProfile.parentElement;
-        }
-
-        // Alternative: look for profile navigation area
-        const profileLinks = document.querySelectorAll('a[href*="profiles.php"]');
-        for (const link of profileLinks) {
-            if (link.textContent.toLowerCase().includes('back') ||
-                link.textContent.toLowerCase().includes('profile')) {
-                return link.parentElement;
-            }
-        }
-
-        // Fallback: add to body as fixed position
-        return null;
     }
 
     function showApiKeyPrompt() {
@@ -169,25 +156,7 @@
 
         // Create display element first
         displayElement = createLastActionDisplay('...');
-
-        // Try to find insertion point near profile navigation
-        const insertionPoint = findInsertionPoint();
-        if (insertionPoint) {
-            insertionPoint.appendChild(displayElement);
-        } else {
-            // Fallback: fixed position
-            displayElement.style.cssText += `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 4px;
-                z-index: 10000;
-            `;
-            document.body.appendChild(displayElement);
-        }
+        document.body.appendChild(displayElement);
 
         // Initial update (non-blocking)
         updateLastAction().catch(console.log);
