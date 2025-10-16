@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Attack Last Action
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Show targets last action on attack page
 // @author       xlemmingx [2035104]
 // @match        https://www.torn.com/loader.php*
@@ -44,17 +44,33 @@
 
     async function fetchLastAction(userId, apiKey) {
         try {
-            const response = await fetch(`https://api.torn.com/user/${userId}?selections=basic&key=${apiKey}`);
+            const response = await fetch(`https://api.torn.com/user/${userId}?selections=profile&key=${apiKey}`);
             const data = await response.json();
+
+            console.log('API Response:', data);
 
             if (data.error) {
                 console.log('API Error:', data.error);
+                if (displayElement) {
+                    displayElement.innerHTML = `Error: ${data.error.error}`;
+                }
                 return null;
             }
 
-            return data.last_action ? data.last_action.timestamp : null;
+            if (data.last_action && data.last_action.timestamp) {
+                return data.last_action.timestamp;
+            } else {
+                console.log('No last_action found in response');
+                if (displayElement) {
+                    displayElement.innerHTML = `No last action data available`;
+                }
+                return null;
+            }
         } catch (error) {
             console.log('Fetch error:', error);
+            if (displayElement) {
+                displayElement.innerHTML = `Network error`;
+            }
             return null;
         }
     }
@@ -62,20 +78,33 @@
     function createLastActionDisplay(timeAgo) {
         const display = document.createElement('div');
         display.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            z-index: 10000;
-            border: 1px solid #444;
+            margin-top: 10px;
+            color: #666;
+            font-size: 13px;
+            font-style: italic;
         `;
-        display.innerHTML = `<strong>Letzte Aktion:</strong> vor ${timeAgo}`;
+        display.innerHTML = `Last action: ${timeAgo} ago`;
         return display;
+    }
+
+    function findInsertionPoint() {
+        // Look for "Back to profile" link or similar navigation elements
+        const backToProfile = document.querySelector('a[href*="profiles.php"]');
+        if (backToProfile && backToProfile.textContent.includes('Back')) {
+            return backToProfile.parentElement;
+        }
+
+        // Alternative: look for profile navigation area
+        const profileLinks = document.querySelectorAll('a[href*="profiles.php"]');
+        for (const link of profileLinks) {
+            if (link.textContent.toLowerCase().includes('back') ||
+                link.textContent.toLowerCase().includes('profile')) {
+                return link.parentElement;
+            }
+        }
+
+        // Fallback: add to body as fixed position
+        return null;
     }
 
     function showApiKeyPrompt() {
@@ -108,13 +137,21 @@
         const targetUserId = getTargetUserId();
         const apiKey = getApiKey();
 
-        if (!targetUserId || !apiKey) return;
+        console.log('Target User ID:', targetUserId);
+        console.log('API Key exists:', !!apiKey);
+
+        if (!targetUserId || !apiKey) {
+            if (displayElement) {
+                displayElement.innerHTML = `${!targetUserId ? 'No target user ID found' : 'No API key configured'}`;
+            }
+            return;
+        }
 
         try {
             const lastActionTimestamp = await fetchLastAction(targetUserId, apiKey);
             if (lastActionTimestamp && displayElement) {
                 const timeAgo = formatTimeAgo(lastActionTimestamp);
-                displayElement.innerHTML = `<strong>Letzte Aktion:</strong> vor ${timeAgo}`;
+                displayElement.innerHTML = `Last action: ${timeAgo} ago`;
             }
         } catch (error) {
             console.log('Update error:', error);
@@ -132,7 +169,25 @@
 
         // Create display element first
         displayElement = createLastActionDisplay('...');
-        document.body.appendChild(displayElement);
+
+        // Try to find insertion point near profile navigation
+        const insertionPoint = findInsertionPoint();
+        if (insertionPoint) {
+            insertionPoint.appendChild(displayElement);
+        } else {
+            // Fallback: fixed position
+            displayElement.style.cssText += `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                z-index: 10000;
+            `;
+            document.body.appendChild(displayElement);
+        }
 
         // Initial update (non-blocking)
         updateLastAction().catch(console.log);
